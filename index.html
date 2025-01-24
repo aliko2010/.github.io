@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Chat - Hesap Oluştur</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #loginContainer, #chatContainer { margin: 20px; }
+        #messages { max-height: 300px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+        input, button { padding: 10px; margin: 5px; width: 200px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div id="loginContainer">
+        <h2>Hesap Oluştur veya Giriş Yap</h2>
+        <input type="text" id="username" placeholder="Kullanıcı Adı">
+        <input type="password" id="password" placeholder="Şifre">
+        <button id="loginBtn">Giriş Yap</button>
+        <div id="errorMessage" class="error"></div>
+    </div>
+
+    <div id="chatContainer" style="display:none;">
+        <h2>Global Chat</h2>
+        <div id="messages"></div>
+        <input type="text" id="messageInput" placeholder="Mesajınızı yazın...">
+        <button id="sendMessageBtn">Gönder</button>
+        <button id="logoutBtn">Çıkış Yap</button>
+    </div>
+
+    <script>
+        // Kullanıcı adı ve şifreyi saklamak için Local Storage kullanıyoruz
+        let currentUser = localStorage.getItem('username');
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+
+        // HTML elemanları
+        const loginContainer = document.getElementById('loginContainer');
+        const chatContainer = document.getElementById('chatContainer');
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorMessageDiv = document.getElementById('errorMessage');
+
+        // Kullanıcı giriş yaptıysa chat'i göster
+        if (currentUser) {
+            loginContainer.style.display = 'none';
+            chatContainer.style.display = 'block';
+            loadMessages();
+        } else {
+            loginContainer.style.display = 'block';
+            chatContainer.style.display = 'none';
+        }
+
+        // Giriş yap butonuna tıklandığında
+        loginBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            // Kullanıcı adının minimum 4 harf olması gerekiyor
+            if (username.length < 4) {
+                errorMessageDiv.textContent = 'Kullanıcı adı en az 4 harf olmalı!';
+                return;
+            }
+
+            // Aynı kullanıcı adı zaten var mı kontrol et
+            const userExists = users.find(user => user.username === username);
+            if (userExists) {
+                errorMessageDiv.textContent = 'Bu isim başkasına ait! Başka Bir İsim Deneyin C:';
+                return;
+            }
+
+            // Kullanıcı adı ve şifreyi kaydet
+            users.push({ username, password });
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('username', username);
+            currentUser = username;
+            loginContainer.style.display = 'none';
+            chatContainer.style.display = 'block';
+            loadMessages();
+            errorMessageDiv.textContent = '';
+        });
+
+        // Çıkış yap butonuna tıklandığında
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('username');
+            currentUser = null;
+            loginContainer.style.display = 'block';
+            chatContainer.style.display = 'none';
+        });
+
+        // Mesaj gönder butonuna tıklandığında
+        sendMessageBtn.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                const messageObj = {
+                    user: currentUser,
+                    text: message,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                addMessageToChat(messageObj);
+                saveMessage(messageObj);
+                messageInput.value = '';
+            }
+        });
+
+        // Sohbeti yükle
+        function loadMessages() {
+            const messages = JSON.parse(localStorage.getItem('messages')) || [];
+            messagesDiv.innerHTML = '';
+            messages.forEach(msg => {
+                const msgElement = document.createElement('div');
+                msgElement.textContent = `[${msg.timestamp}] ${msg.user}: ${msg.text}`;
+                messagesDiv.appendChild(msgElement);
+            });
+        }
+
+        // Yeni mesaj ekle
+        function addMessageToChat(msg) {
+            const msgElement = document.createElement('div');
+            msgElement.textContent = `[${msg.timestamp}] ${msg.user}: ${msg.text}`;
+            messagesDiv.appendChild(msgElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // En son mesaja kaydır
+        }
+
+        // Mesajları localStorage'a kaydet
+        function saveMessage(msg) {
+            const messages = JSON.parse(localStorage.getItem('messages')) || [];
+            messages.push(msg);
+            localStorage.setItem('messages', JSON.stringify(messages));
+        }
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        }
+    </script>
+</body>
+</html>
