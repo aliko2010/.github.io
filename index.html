@@ -140,8 +140,15 @@
         }
 
         // Etkileşimler
-        canvas.addEventListener('click', jump); // Mobilde tıklama ile zıplama
-        canvas.addEventListener('mousedown', jump); // PC'de sol tık ile zıplama
+        function onUserInput(event) {
+            if (event.type === "mousedown" || event.type === "touchstart") {
+                jump(); // Zıplama işlemi
+            }
+        }
+
+        // Telefon ve PC desteği için event dinleyicileri
+        canvas.addEventListener('mousedown', onUserInput);  // PC'de sol tıklama ile zıplama
+        canvas.addEventListener('touchstart', onUserInput); // Telefonda ekran tıklaması ile zıplama
 
         // Oyun sıfırlama fonksiyonu
         function resetGame() {
