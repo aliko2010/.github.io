@@ -15,10 +15,25 @@
             display: block;
             background-color: #87CEEB;
         }
+        #jumpButton {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background-color: #ff9800;
+            color: white;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
+    <button id="jumpButton">Zıpla</button>
+
     <script>
         // Canvas ve context ayarları
         const canvas = document.getElementById('gameCanvas');
@@ -46,6 +61,11 @@
         let obstacleFrequency = 1000; // Engel sıklığı (ms)
         let lastObstacleTime = 0;
 
+        // Kuşlar
+        let birds = [];
+        let birdFrequency = 2000; // Kuş sıklığı (ms)
+        let lastBirdTime = 0;
+
         // Skor
         let score = 0;
 
@@ -59,13 +79,26 @@
 
         // Engel oluşturma fonksiyonu
         function generateObstacle() {
-            const height = Math.random() * (canvas.height / 2) + 50; // Engel boyutu
+            const height = Math.random() * (canvas.height / 6) + 50; // Engel boyutu (daha kısa)
             obstacles.push({
                 x: canvas.width,
                 y: canvas.height - height,
                 width: 50,
                 height: height,
-                color: 'red'
+                color: 'gray' // Taş gibi engeller
+            });
+        }
+
+        // Kuş oluşturma fonksiyonu
+        function generateBird() {
+            const birdHeight = Math.random() * 20 + 30; // Kuş boyutu
+            birds.push({
+                x: canvas.width,
+                y: Math.random() * (canvas.height / 2),
+                width: 50,
+                height: birdHeight,
+                color: 'yellow', // Kuş rengi
+                speed: 3
             });
         }
 
@@ -80,11 +113,31 @@
             }
         }
 
+        // Kuşların hareketini sağla
+        function moveBirds() {
+            for (let i = 0; i < birds.length; i++) {
+                birds[i].x -= birds[i].speed; // Kuş sağdan sola hareket eder
+                if (birds[i].x + birds[i].width < 0) {
+                    birds.splice(i, 1); // Kuş ekran dışına çıkarsa sil
+                    i--;
+                }
+            }
+        }
+
         // Çarpışma kontrolü
         function checkCollision() {
             for (let i = 0; i < obstacles.length; i++) {
                 if (player.x + player.width > obstacles[i].x && player.x < obstacles[i].x + obstacles[i].width) {
                     if (player.y + player.height > obstacles[i].y) {
+                        alert("Oyun Bitti! Skor: " + score);
+                        resetGame(); // Oyun bittiğinde sıfırla
+                    }
+                }
+            }
+            // Kuşlarla çarpışma kontrolü
+            for (let i = 0; i < birds.length; i++) {
+                if (player.x + player.width > birds[i].x && player.x < birds[i].x + birds[i].width) {
+                    if (player.y + player.height > birds[i].y && player.y < birds[i].y + birds[i].height) {
                         alert("Oyun Bitti! Skor: " + score);
                         resetGame(); // Oyun bittiğinde sıfırla
                     }
@@ -119,10 +172,25 @@
 
             moveObstacles();
 
-            // Engelleri çiz
+            // Kuşları oluştur ve hareket ettir
+            if (timestamp - lastBirdTime > birdFrequency && score >= 1500) {
+                generateBird();
+                lastBirdTime = timestamp;
+            }
+
+            moveBirds();
+
+            // Engelleri ve kuşları çiz
             for (let i = 0; i < obstacles.length; i++) {
                 ctx.fillStyle = obstacles[i].color;
                 ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+            }
+
+            for (let i = 0; i < birds.length; i++) {
+                ctx.fillStyle = birds[i].color;
+                ctx.beginPath();
+                ctx.arc(birds[i].x + birds[i].width / 2, birds[i].y + birds[i].height / 2, birds[i].width / 2, 0, Math.PI * 2);
+                ctx.fill();
             }
 
             // Çarpışma kontrolü
@@ -140,15 +208,7 @@
         }
 
         // Etkileşimler
-        function onUserInput(event) {
-            if (event.type === "mousedown" || event.type === "touchstart") {
-                jump(); // Zıplama işlemi
-            }
-        }
-
-        // Telefon ve PC desteği için event dinleyicileri
-        canvas.addEventListener('mousedown', onUserInput);  // PC'de sol tıklama ile zıplama
-        canvas.addEventListener('touchstart', onUserInput); // Telefonda ekran tıklaması ile zıplama
+        document.getElementById('jumpButton').addEventListener('click', jump); // Butonla zıplama
 
         // Oyun sıfırlama fonksiyonu
         function resetGame() {
@@ -156,9 +216,11 @@
             player.velocityY = 0;
             player.grounded = false;
             obstacles = [];
+            birds = [];
             score = 0;
             lastObstacleTime = 0;
-            gameLoop();
+            lastBirdTime = 0;
+            gameLoop(0);
         }
 
         // Oyun başlat
