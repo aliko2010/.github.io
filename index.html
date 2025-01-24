@@ -54,7 +54,7 @@
             velocityY: 0, // Yükseklik değişimi
             gravity: 0.8, // Yer çekimi
             jumpPower: -15, // Zıplama gücü
-            grounded: false
+            grounded: false // Yerde mi kontrolü
         };
 
         // Çöp adam çizme fonksiyonu
@@ -86,8 +86,8 @@
         // Zıplama işlemi
         function jump() {
             if (player.grounded) {
-                player.velocityY = player.jumpPower;
-                player.grounded = false;
+                player.velocityY = player.jumpPower; // Zıplama gücü
+                player.grounded = false; // Artık yerden ayrıldı
             }
         }
 
@@ -134,11 +134,11 @@
 
             // Yerçekimi etkisi
             if (player.y + player.height < canvas.height) {
-                player.velocityY += player.gravity;
+                player.velocityY += player.gravity; // Yavaşça aşağı iniyor
             } else {
                 player.velocityY = 0;
-                player.y = canvas.height - player.height;
-                player.grounded = true;
+                player.y = canvas.height - player.height; // Yere oturuyor
+                player.grounded = true; // Artık yerden temas ediyor
             }
 
             player.y += player.velocityY;
