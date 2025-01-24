@@ -3,231 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Chat - Hesap Oluştur</title>
+    <title>2D Parkur Oyunu</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        #loginContainer, #chatContainer { margin: 20px; }
-        #messages { max-height: 300px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
-        input, button { padding: 10px; margin: 5px; width: 200px; }
-        .error { color: red; }
-        #gallery { display: flex; flex-wrap: wrap; gap: 10px; }
-        #gallery img { width: 100px; height: 100px; object-fit: cover; cursor: pointer; }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            display: block;
+            background-color: #87CEEB;
+        }
     </style>
 </head>
 <body>
-    <div id="loginContainer">
-        <h2>Hesap Oluştur veya Giriş Yap</h2>
-        <input type="text" id="username" placeholder="Kullanıcı Adı">
-        <input type="password" id="password" placeholder="Şifre">
-        <button id="loginBtn">Giriş Yap</button>
-        <button id="signupBtn">Hesap Oluştur</button>
-        <div id="errorMessage" class="error"></div>
-    </div>
-
-    <div id="chatContainer" style="display:none;">
-        <h2>Global Chat</h2>
-        <div id="messages"></div>
-        <input type="text" id="messageInput" placeholder="Mesajınızı yazın...">
-        <button id="sendMessageBtn">Gönder</button>
-        <button id="logoutBtn">Çıkış Yap</button>
-
-        <h3>Galeriden Resim Gönder</h3>
-        <input type="file" id="imageUpload">
-        <div id="gallery"></div>
-    </div>
-
+    <canvas id="gameCanvas"></canvas>
     <script>
-        // Kullanıcı adı ve şifreyi saklamak için Local Storage kullanıyoruz
-        let currentUser = localStorage.getItem('username');
-        let users = JSON.parse(localStorage.getItem('users')) || [];
-        let messages = JSON.parse(localStorage.getItem('messages')) || [];
-        let images = JSON.parse(localStorage.getItem('images')) || [];
+        // Canvas ve context ayarları
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-        // HTML elemanları
-        const loginContainer = document.getElementById('loginContainer');
-        const chatContainer = document.getElementById('chatContainer');
-        const messagesDiv = document.getElementById('messages');
-        const messageInput = document.getElementById('messageInput');
-        const loginBtn = document.getElementById('loginBtn');
-        const signupBtn = document.getElementById('signupBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const sendMessageBtn = document.getElementById('sendMessageBtn');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const errorMessageDiv = document.getElementById('errorMessage');
-        const imageUpload = document.getElementById('imageUpload');
-        const galleryDiv = document.getElementById('gallery');
+        // Canvas boyutları
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        // Kullanıcı giriş yaptıysa chat'i göster
-        if (currentUser) {
-            loginContainer.style.display = 'none';
-            chatContainer.style.display = 'block';
-            loadMessages();
-            loadImages();
-        } else {
-            loginContainer.style.display = 'block';
-            chatContainer.style.display = 'none';
+        // Karakterin özellikleri
+        let player = {
+            x: 50,
+            y: canvas.height - 150,  // Yükseklik başlangıç
+            width: 50,
+            height: 50,
+            color: 'green',
+            velocityY: 0, // Yükseklik değişimi
+            gravity: 0.8, // Yer çekimi
+            jumpPower: -15, // Zıplama gücü
+            grounded: false
+        };
+
+        // Skor
+        let score = 0;
+
+        // Zıplama işlemi
+        function jump() {
+            if (player.grounded) {
+                player.velocityY = player.jumpPower;
+                player.grounded = false;
+            }
         }
 
-        // Giriş yap butonuna tıklandığında
-        loginBtn.addEventListener('click', () => {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
+        // Oyun döngüsü
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (!username || !password) {
-                errorMessageDiv.textContent = 'Kullanıcı adı ve şifre boş olamaz!';
-                return;
+            // Yerçekimi etkisi
+            if (player.y + player.height < canvas.height) {
+                player.velocityY += player.gravity;  // Zıplama sonrası hızlanma
+            } else {
+                player.velocityY = 0;
+                player.y = canvas.height - player.height;
+                player.grounded = true;
             }
 
-            // Kullanıcı adının minimum 4 harf olması gerekiyor
-            if (username.length < 4) {
-                errorMessageDiv.textContent = 'Kullanıcı adı en az 4 harf olmalı!';
-                return;
+            player.y += player.velocityY;
+
+            // Karakter çizimi
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Skor göstergesi
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "#000";
+            ctx.fillText("Skor: " + score, 20, 30);
+
+            // Hızlanma
+            score++;
+            if (score % 100 === 0) {
+                // Oyunun hızı arttırılabilir.
             }
 
-            // Aynı kullanıcı adı zaten var mı kontrol et
-            const userExists = users.find(user => user.username === username);
-            if (userExists) {
-                errorMessageDiv.textContent = 'Bu isim başkasına ait! Başka Bir İsim Deneyin C:';
-                return;
-            }
-
-            // Kullanıcı adı ve şifreyi kaydet
-            users.push({ username, password });
-            localStorage.setItem('users', JSON.stringify(users));
-            localStorage.setItem('username', username);
-            currentUser = username;
-            loginContainer.style.display = 'none';
-            chatContainer.style.display = 'block';
-            loadMessages();
-            loadImages();
-            errorMessageDiv.textContent = '';
-        });
-
-        // Hesap oluştur butonuna tıklandığında
-        signupBtn.addEventListener('click', () => {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-
-            if (!username || !password) {
-                errorMessageDiv.textContent = 'Kullanıcı adı ve şifre boş olamaz!';
-                return;
-            }
-
-            // Kullanıcı adının minimum 4 harf olması gerekiyor
-            if (username.length < 4) {
-                errorMessageDiv.textContent = 'Kullanıcı adı en az 4 harf olmalı!';
-                return;
-            }
-
-            // Aynı kullanıcı adı zaten var mı kontrol et
-            const userExists = users.find(user => user.username === username);
-            if (userExists) {
-                errorMessageDiv.textContent = 'Bu isim başkasına ait! Başka Bir İsim Deneyin C:';
-                return;
-            }
-
-            // Kullanıcı adı ve şifreyi kaydet
-            users.push({ username, password });
-            localStorage.setItem('users', JSON.stringify(users));
-            localStorage.setItem('username', username);
-            currentUser = username;
-            loginContainer.style.display = 'none';
-            chatContainer.style.display = 'block';
-            loadMessages();
-            loadImages();
-            errorMessageDiv.textContent = '';
-        });
-
-        // Çıkış yap butonuna tıklandığında
-        logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('username');
-            currentUser = null;
-            loginContainer.style.display = 'block';
-            chatContainer.style.display = 'none';
-        });
-
-        // Mesaj gönder butonuna tıklandığında
-        sendMessageBtn.addEventListener('click', () => {
-            const message = messageInput.value.trim();
-            if (message) {
-                const messageObj = {
-                    user: currentUser,
-                    text: message,
-                    timestamp: new Date().toLocaleTimeString()
-                };
-                addMessageToChat(messageObj);
-                saveMessage(messageObj);
-                messageInput.value = '';
-            }
-        });
-
-        // Resim gönder butonuna tıklandığında
-        imageUpload.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const imageObj = {
-                        user: currentUser,
-                        imageUrl: reader.result,
-                        timestamp: new Date().toLocaleTimeString()
-                    };
-                    saveImage(imageObj);
-                    addImageToGallery(imageObj);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Sohbeti yükle
-        function loadMessages() {
-            messagesDiv.innerHTML = '';
-            messages.forEach(msg => {
-                const msgElement = document.createElement('div');
-                msgElement.textContent = `[${msg.timestamp}] ${msg.user}: ${msg.text}`;
-                messagesDiv.appendChild(msgElement);
-            });
+            requestAnimationFrame(gameLoop); // Sonsuz döngü
         }
 
-        // Yeni mesaj ekle
-        function addMessageToChat(msg) {
-            const msgElement = document.createElement('div');
-            msgElement.textContent = `[${msg.timestamp}] ${msg.user}: ${msg.text}`;
-            messagesDiv.appendChild(msgElement);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+        // Etkileşimler
+        canvas.addEventListener('click', jump); // Mobilde tıklama ile zıplama
+        canvas.addEventListener('mousedown', jump); // PC'de sol tık ile zıplama
 
-        // Mesajları localStorage'a kaydet
-        function saveMessage(msg) {
-            messages.push(msg);
-            localStorage.setItem('messages', JSON.stringify(messages));
-        }
-
-        // Resimleri yükle
-        function loadImages() {
-            galleryDiv.innerHTML = '';
-            images.forEach(img => {
-                const imgElement = document.createElement('img');
-                imgElement.src = img.imageUrl;
-                imgElement.alt = 'User Image';
-                galleryDiv.appendChild(imgElement);
-            });
-        }
-
-        // Yeni resim ekle
-        function addImageToGallery(img) {
-            const imgElement = document.createElement('img');
-            imgElement.src = img.imageUrl;
-            imgElement.alt = 'User Image';
-            galleryDiv.appendChild(imgElement);
-        }
-
-        // Resimleri localStorage'a kaydet
-        function saveImage(img) {
-            images.push(img);
-            localStorage.setItem('images', JSON.stringify(images));
-        }
+        // Oyun başlat
+        gameLoop();
     </script>
 </body>
 </html>
