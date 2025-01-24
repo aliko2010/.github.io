@@ -27,6 +27,7 @@
             border: none;
             border-radius: 10px;
             cursor: pointer;
+            z-index: 10; /* Butonun üstte görünmesini sağla */
         }
     </style>
 </head>
@@ -48,7 +49,7 @@
             x: 50,
             y: canvas.height - 150,  // Yükseklik başlangıç
             width: 50,
-            height: 50,
+            height: 100, // Çöp adamın boyu
             color: 'green',
             velocityY: 0, // Yükseklik değişimi
             gravity: 0.8, // Yer çekimi
@@ -56,18 +57,31 @@
             grounded: false
         };
 
-        // Engellerin özellikleri
-        let obstacles = [];
-        let obstacleFrequency = 1000; // Engel sıklığı (ms)
-        let lastObstacleTime = 0;
+        // Çöp adam çizme fonksiyonu
+        function drawPlayer() {
+            ctx.beginPath();
+            ctx.arc(player.x + player.width / 2, player.y + 20, 20, 0, Math.PI * 2); // Baş kısmı
+            ctx.fillStyle = 'green';
+            ctx.fill();
+            ctx.closePath();
 
-        // Kuşlar
-        let birds = [];
-        let birdFrequency = 2000; // Kuş sıklığı (ms)
-        let lastBirdTime = 0;
+            ctx.beginPath();
+            ctx.moveTo(player.x + player.width / 2, player.y + 40); // Gövde
+            ctx.lineTo(player.x + player.width / 2, player.y + player.height); 
+            ctx.strokeStyle = 'green';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.closePath();
 
-        // Skor
-        let score = 0;
+            // Ayaklar
+            ctx.beginPath();
+            ctx.moveTo(player.x + player.width / 4, player.y + player.height);
+            ctx.lineTo(player.x + player.width / 2, player.y + player.height + 30); // Sol ayak
+            ctx.moveTo(player.x + 3 * player.width / 4, player.y + player.height);
+            ctx.lineTo(player.x + player.width / 2, player.y + player.height + 30); // Sağ ayak
+            ctx.stroke();
+            ctx.closePath();
+        }
 
         // Zıplama işlemi
         function jump() {
@@ -78,47 +92,24 @@
         }
 
         // Engel oluşturma fonksiyonu
+        let obstacles = [];
         function generateObstacle() {
-            const height = Math.random() * (canvas.height / 6) + 50; // Engel boyutu (daha kısa)
+            const height = Math.random() * (canvas.height / 6) + 50;
             obstacles.push({
                 x: canvas.width,
                 y: canvas.height - height,
                 width: 50,
                 height: height,
-                color: 'gray' // Taş gibi engeller
+                color: 'gray'
             });
         }
 
-        // Kuş oluşturma fonksiyonu
-        function generateBird() {
-            const birdHeight = Math.random() * 20 + 30; // Kuş boyutu
-            birds.push({
-                x: canvas.width,
-                y: Math.random() * (canvas.height / 2),
-                width: 50,
-                height: birdHeight,
-                color: 'yellow', // Kuş rengi
-                speed: 3
-            });
-        }
-
-        // Engellerin hareketini sağla
+        // Engel hareketi
         function moveObstacles() {
             for (let i = 0; i < obstacles.length; i++) {
-                obstacles[i].x -= 5; // Engel sağdan sola hareket eder
+                obstacles[i].x -= 5;
                 if (obstacles[i].x + obstacles[i].width < 0) {
-                    obstacles.splice(i, 1); // Engel ekran dışına çıkarsa sil
-                    i--;
-                }
-            }
-        }
-
-        // Kuşların hareketini sağla
-        function moveBirds() {
-            for (let i = 0; i < birds.length; i++) {
-                birds[i].x -= birds[i].speed; // Kuş sağdan sola hareket eder
-                if (birds[i].x + birds[i].width < 0) {
-                    birds.splice(i, 1); // Kuş ekran dışına çıkarsa sil
+                    obstacles.splice(i, 1); 
                     i--;
                 }
             }
@@ -130,28 +121,20 @@
                 if (player.x + player.width > obstacles[i].x && player.x < obstacles[i].x + obstacles[i].width) {
                     if (player.y + player.height > obstacles[i].y) {
                         alert("Oyun Bitti! Skor: " + score);
-                        resetGame(); // Oyun bittiğinde sıfırla
-                    }
-                }
-            }
-            // Kuşlarla çarpışma kontrolü
-            for (let i = 0; i < birds.length; i++) {
-                if (player.x + player.width > birds[i].x && player.x < birds[i].x + birds[i].width) {
-                    if (player.y + player.height > birds[i].y && player.y < birds[i].y + birds[i].height) {
-                        alert("Oyun Bitti! Skor: " + score);
-                        resetGame(); // Oyun bittiğinde sıfırla
+                        resetGame(); 
                     }
                 }
             }
         }
 
         // Oyun döngüsü
+        let score = 0;
         function gameLoop(timestamp) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Yerçekimi etkisi
             if (player.y + player.height < canvas.height) {
-                player.velocityY += player.gravity;  // Zıplama sonrası hızlanma
+                player.velocityY += player.gravity;
             } else {
                 player.velocityY = 0;
                 player.y = canvas.height - player.height;
@@ -160,51 +143,30 @@
 
             player.y += player.velocityY;
 
-            // Karakter çizimi
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+            // Karakteri çiz
+            drawPlayer();
 
-            // Engelleri oluştur ve hareket ettir
-            if (timestamp - lastObstacleTime > obstacleFrequency) {
+            // Engel ekleme
+            if (timestamp % 1000 < 50) {
                 generateObstacle();
-                lastObstacleTime = timestamp;
             }
 
             moveObstacles();
+            checkCollision();
 
-            // Kuşları oluştur ve hareket ettir
-            if (timestamp - lastBirdTime > birdFrequency && score >= 1500) {
-                generateBird();
-                lastBirdTime = timestamp;
-            }
-
-            moveBirds();
-
-            // Engelleri ve kuşları çiz
+            // Engelleri çiz
             for (let i = 0; i < obstacles.length; i++) {
                 ctx.fillStyle = obstacles[i].color;
                 ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
             }
 
-            for (let i = 0; i < birds.length; i++) {
-                ctx.fillStyle = birds[i].color;
-                ctx.beginPath();
-                ctx.arc(birds[i].x + birds[i].width / 2, birds[i].y + birds[i].height / 2, birds[i].width / 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // Çarpışma kontrolü
-            checkCollision();
-
-            // Skor göstergesi
+            // Skor
+            score++;
             ctx.font = "20px Arial";
             ctx.fillStyle = "#000";
             ctx.fillText("Skor: " + score, 20, 30);
 
-            // Skor artışı
-            score++;
-
-            requestAnimationFrame(gameLoop); // Sonsuz döngü
+            requestAnimationFrame(gameLoop);
         }
 
         // Etkileşimler
@@ -216,10 +178,7 @@
             player.velocityY = 0;
             player.grounded = false;
             obstacles = [];
-            birds = [];
             score = 0;
-            lastObstacleTime = 0;
-            lastBirdTime = 0;
             gameLoop(0);
         }
 
