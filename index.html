@@ -41,6 +41,11 @@
             grounded: false
         };
 
+        // Engellerin özellikleri
+        let obstacles = [];
+        let obstacleFrequency = 1000; // Engel sıklığı (ms)
+        let lastObstacleTime = 0;
+
         // Skor
         let score = 0;
 
@@ -52,8 +57,43 @@
             }
         }
 
+        // Engel oluşturma fonksiyonu
+        function generateObstacle() {
+            const height = Math.random() * (canvas.height / 2) + 50; // Engel boyutu
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - height,
+                width: 50,
+                height: height,
+                color: 'red'
+            });
+        }
+
+        // Engellerin hareketini sağla
+        function moveObstacles() {
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= 5; // Engel sağdan sola hareket eder
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1); // Engel ekran dışına çıkarsa sil
+                    i--;
+                }
+            }
+        }
+
+        // Çarpışma kontrolü
+        function checkCollision() {
+            for (let i = 0; i < obstacles.length; i++) {
+                if (player.x + player.width > obstacles[i].x && player.x < obstacles[i].x + obstacles[i].width) {
+                    if (player.y + player.height > obstacles[i].y) {
+                        alert("Oyun Bitti! Skor: " + score);
+                        resetGame(); // Oyun bittiğinde sıfırla
+                    }
+                }
+            }
+        }
+
         // Oyun döngüsü
-        function gameLoop() {
+        function gameLoop(timestamp) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Yerçekimi etkisi
@@ -71,16 +111,30 @@
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
 
+            // Engelleri oluştur ve hareket ettir
+            if (timestamp - lastObstacleTime > obstacleFrequency) {
+                generateObstacle();
+                lastObstacleTime = timestamp;
+            }
+
+            moveObstacles();
+
+            // Engelleri çiz
+            for (let i = 0; i < obstacles.length; i++) {
+                ctx.fillStyle = obstacles[i].color;
+                ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+            }
+
+            // Çarpışma kontrolü
+            checkCollision();
+
             // Skor göstergesi
             ctx.font = "20px Arial";
             ctx.fillStyle = "#000";
             ctx.fillText("Skor: " + score, 20, 30);
 
-            // Hızlanma
+            // Skor artışı
             score++;
-            if (score % 100 === 0) {
-                // Oyunun hızı arttırılabilir.
-            }
 
             requestAnimationFrame(gameLoop); // Sonsuz döngü
         }
@@ -89,8 +143,19 @@
         canvas.addEventListener('click', jump); // Mobilde tıklama ile zıplama
         canvas.addEventListener('mousedown', jump); // PC'de sol tık ile zıplama
 
+        // Oyun sıfırlama fonksiyonu
+        function resetGame() {
+            player.y = canvas.height - 150;
+            player.velocityY = 0;
+            player.grounded = false;
+            obstacles = [];
+            score = 0;
+            lastObstacleTime = 0;
+            gameLoop();
+        }
+
         // Oyun başlat
-        gameLoop();
+        gameLoop(0);
     </script>
 </body>
 </html>
